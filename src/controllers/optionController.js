@@ -5,13 +5,23 @@ export const createOption = async (req, res) => {
   try {
     const { questionId } = req.params;
     const { text } = req.body;
-    const option = new Option({ text, question: questionId });
+
+    const option = new Option({ text, question: questionId, votes: 0 });
     await option.save();
 
     await Question.findByIdAndUpdate(questionId, {
       $push: { options: option._id },
     });
-    res.status(201).json(option);
+
+    // Dynamically generate link_to_vote for the new option
+    const optionResponse = {
+      id: option._id,
+      text: option.text,
+      votes: option.votes,
+      link_to_vote: `http://localhost:3000/options/${option._id}/add_vote`,
+    };
+
+    res.status(201).json(optionResponse);
   } catch (error) {
     res.status(500).json({ error: "Failed to create option" });
   }
@@ -39,7 +49,16 @@ export const addVote = async (req, res) => {
       { $inc: { votes: 1 } },
       { new: true }
     );
-    res.status(200).json(option);
+
+    // Generate response structure with link_to_vote
+    const optionResponse = {
+      id: option._id,
+      text: option.text,
+      votes: option.votes,
+      link_to_vote: `http://localhost:8000/options/${option._id}/add_vote`,
+    };
+
+    res.status(200).json(optionResponse);
   } catch (error) {
     res.status(500).json({ error: "Failed to add vote" });
   }
